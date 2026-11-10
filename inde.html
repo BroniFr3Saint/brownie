@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>A VESSEL OF HORROR</title>
+<style>
+:root{--bg:#09090b;--fg:#d9d3c8;--dim:#7d776d;--red:#b3262e;--f:0;box-sizing:border-box;
+padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.75 Georgia,"Times New Roman",serif;min-height:100vh;
+box-shadow:inset 0 0 calc(40px + var(--f)*160px) calc(var(--f)*40px) rgba(120,0,0,calc(.15 + var(--f)*.55));transition:box-shadow 2s}
+main{max-width:620px;margin:0 auto;padding:22px 20px 60px}
+.top{display:flex;justify-content:space-between;font-size:12px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.top button{background:none;border:0;color:var(--dim);font:inherit;text-transform:inherit;letter-spacing:inherit;cursor:pointer;padding:6px 0}
+#s p{margin:0 0 1.1em;text-transform:uppercase;letter-spacing:.03em;font-size:.95em;animation:in .6s}
+#s p.r{color:#e8c9c9}
+h1{font-size:1.9rem;letter-spacing:.12em;text-transform:uppercase;margin:50px 0 6px;color:#e9e2d4;animation:fl 4s infinite}
+.sub,.end small{color:var(--dim);font-size:.85em;letter-spacing:.08em;text-transform:uppercase}
+.btn{display:block;width:100%;text-align:left;margin:12px 0;padding:14px 16px;background:#141418;color:var(--fg);
+border:1px solid #2c2c33;border-left:3px solid var(--red);border-radius:6px;font:inherit;font-size:.92em;
+text-transform:uppercase;letter-spacing:.03em;cursor:pointer;animation:in .6s}
+.btn:active{background:#1d1215}
+.btn[disabled]{opacity:.35}
+.end{text-align:center;margin-top:30px;animation:in 1.5s}
+.end h2{color:var(--red);letter-spacing:.2em;font-size:1.25rem;margin:.3em 0}
+.end em{display:block;color:var(--dim);margin:14px 0 22px}
+@keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+@keyframes fl{0%,90%,100%{opacity:1}92%{opacity:.4}94%{opacity:1}96%{opacity:.2}}
+.intro{text-align:center;padding-top:6px}
+.intro img{display:block;margin:0 auto;max-width:100%;max-height:64vh;width:auto;border-radius:4px;box-shadow:0 0 60px rgba(120,0,0,.35);animation:in 2.5s}
+.intro p{margin:26px 0 0!important;line-height:1.9;color:#e9e2d4;opacity:0;animation:in 2s 1.8s forwards,pulse 3s 4s infinite}
+body.intro .top{visibility:hidden}
+@keyframes pulse{50%{opacity:.55}}
+.msg{margin:26px 0 0;font-size:1.15rem;line-height:1.9;letter-spacing:.14em;text-transform:uppercase;color:#f1e4dc;text-shadow:0 0 14px rgba(179,38,46,.55);animation:glow 3.5s 7s infinite}
+.msg .ln.big{font-size:1.9rem;margin-top:.3em;color:#ffd9d2;letter-spacing:.1em}
+.msg .w{display:inline-block;white-space:nowrap}
+.msg .w span{display:inline-block;opacity:0;transform:translateY(16px) scale(.7);filter:blur(6px);animation:lt .8s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes lt{to{opacity:1;transform:none;filter:none}}
+@keyframes glow{50%{text-shadow:0 0 28px rgba(255,90,90,.95),0 0 3px #fff}}
+.tap{margin-top:30px;font-size:.75rem;letter-spacing:.3em;text-transform:uppercase;color:#7d776d;opacity:0;animation:in 1.5s forwards,pulse 3s infinite}
+#s p.dread{font-weight:700;color:#efc4be;letter-spacing:.05em;text-shadow:0 0 9px rgba(179,38,46,.75);animation:in .6s,shake .14s 4}
+#s p.short{font-weight:700;font-size:1.08em;color:#f3d2cc;text-shadow:0 0 12px rgba(179,38,46,.85);letter-spacing:.08em}
+@keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><span id="cnt"></span><button id="mu"></button><button id="tw"></button></div>
+<div id="s"></div>
+</main>
+<script>
+/* ============================
+   A VESSEL OF HORROR - BRANCHING GAME
+   Five chapters, multiple endings
+   ============================ */
+
+// ===== HIDDEN STORY VARIABLES =====
+const V = {
+  evidence: 0,        // 0-3: useful evidence collected
+  trust: 0,           // 0-3: group trust in Missy
+  unity: 0,           // 0-3: group unity
+  selena_confidence: 0, // 0-2
+  lucy_confidence: 0,   // 0-2
+  rhoda_caution: 0,     // 0-2
+  sophia_courage: 0,    // 0-2
+  esther_clues: 0,      // 0-3: Esther's identity and clues
+  danger: 0,            // 0-3: how threatened
+  clues_found: 0,       // 0-5: notable clues
+  chapter: 0,
+  step: 0,
+  skip: false,
+  fast: false,
+};
+
+// ===== STORY DATA =====
+const N = {};
+
+function renderScene(node) {
+  const s = document.getElementById('s');
+  s.innerHTML = '';
+  if (node.ch) {
+    const h = document.createElement('h1');
+    h.textContent = node.title || '';
+    s.appendChild(h);
+  }
+  const t = document.createElement('p');
+  t.textContent = node.text || '';
+  s.appendChild(t);
+  if (node.dread) {
+    const d = document.createElement('p');
+    d.className = 'dread';
+    d.textContent = node.dread;
+    s.appendChild(d);
+  }
+  if (node.short) {
+    const sh = document.createElement('p');
+    sh.className = 'short';
+    sh.textContent = node.short;
+    s.appendChild(sh);
+  }
+  if (node.choices) {
+    node.choices.forEach(ch => {
+      const b = document.createElement('button');
+      b.textContent = ch.lbl;
+      b.addEventListener('click', () => {
+        handleChoice(ch.id);
+      });
+      s.appendChild(b);
+    });
+  }
+}
+
+function handleChoice(choiceId) {
+  const node = N.current;
+  const ch = node.choices.find(c => c.id === choiceId);
+  if (!ch) return;
+
+  // Apply consequences
+  if (ch.v) {
+    for (let key in ch.v) {
+      V[key] = (V[key] || 0) + (ch.v[key] || 0);
+    }
+    for (let k of ['evidence','trust','unity','selena_confidence','lucy_confidence','rhoda_caution','sophia_courage','esther_clues','danger','clues_found']) {
+      V[k] = Math.max(0, Math.min(3, V[k]));
+    }
+  }
+
+  // Determine next node
+  let next = null;
+  if (ch.to) {
+    next = N[ch.to];
+  } else {
+    const chapterOrder = [
+      'c1s1','c1s2','c1s3','c2s1','c2s2','c2s3',
+      'c3s1','c3s2','c3s3','c4s1','c4s2','c4s3',
+      'c5s1','c5s2'
+    ];
+    const idx = chapterOrder.indexOf(node.title);
+    if (idx < chapterOrder.length - 1) {
+      next = N[chapterOrder[idx + 1]];
+    } else {
+      N.current = null;
+      evaluateEnding();
+      return;
+    }
+  }
+
+  N.current = next;
+  renderScene(N.current);
+}
+
+// ===== ENDING EVALUATION =====
+function evaluateEnding() {
+  const s = document.getElementById('s');
+  s.innerHTML = '';
+  let end = null, epi = '', message = '';
+
+  const best = V.evidence >= 2 && V.trust >= 2 && V.unity >= 2 && V.esther_clues >= 2;
+  const escape_ = V.evidence < 2 && V.chapter >= 5;
+  const difficult = V.trust < 2 && V.evidence < 2 && V.unity < 2;
+  const secret = V.esther_clues >= 3 && V.clues_found >= 4;
+
+  if (best) {
+    end = "THE VESSEL THAT WOULD NOT BREAK";
+    epi = "The evidence reaches the authorities. The driver and Mr. Daniel are taken in for questioning, and the ladies are safely escorted away.";
+    message = "The group preserved important evidence, trusted one another, and made careful decisions.";
+  } else if (escape_) {
+    end = "THE ONES WHO MADE IT OUT";
+    epi = "The ladies escape through the hidden passage and reach the main road. They are safe, but much of the evidence remains behind.";
+    message = "When Missy prioritised escape over collecting evidence, the mystery remains partly unsolved.";
+  } else if (difficult) {
+    end = "THE PRICE OF DISTRUST";
+    epi = "The group gets out, but poor communication and suspicion have caused unnecessary trouble.";
+    message = "When Missy repeatedly dismissed warnings and made decisions without considering the others, the group paid the price.";
+  } else if (secret) {
+    end = "THE NINTH NAME";
+    epi = "The organisation behind the excursion had a much longer history. Green Valley was only one of several locations used to collect information about visitors.";
+    message = "By discovering every clue, Missy unlocked the hidden ending.";
+  } else {
+    end = "TRACEBACK";
+    epi = "The story ends before all mysteries are resolved.";
+    message = "A vessel of horror, and the journey continues...";
+  }
+
+  const h = document.createElement('h2');
+  h.textContent = end;
+  s.appendChild(h);
+  const em = document.createElement('em');
+  em.textContent = epi;
+  s.appendChild(em);
+  const note = document.createElement('p');
+  note.style.textAlign = 'center';
+  note.style.color = '#7d776d';
+  note.style.fontSize = '.85em';
+  note.textContent = message;
+  s.appendChild(note);
+  const btn2 = document.createElement('button');
+  btn2.textContent = "Start a New Game";
+  btn2.style.marginTop = '30px';
+  btn2.addEventListener('click', () => { location.reload(); });
+  s.appendChild(btn2);
+}
+
+// ===== BUILD STORY =====
+function buildStory() {
+  N.c1s1 = {
+    title: "Chapter 1: The Excursion",
+    ch: "Chapter 1",
+    text: `It was a Saturday morning in June.
+
+The ladies had been looking forward to the excursion for weeks. After several Sabbath programmes, rehearsals, meetings and other church activities, they finally had an opportunity to spend some time together away from their usual surroundings.
+
+The destination was a small countryside guesthouse called Green Valley Retreat, several hours away from town. Aunt Mary had organised everything.
+
+"Please, ladies, make sure you have everything you need. I don't want anyone calling me from the bus station because she has forgotten her bag."
+
+Vera laughed.
+
+"Auntie, you are talking as if we are travelling to another country."
+
+Sis. Lizzy turned around.
+
+"Vera, if you have finished entertaining yourself, kindly check whether you have your water bottle."
+
+Everyone laughed.
+
+Selena was already taking pictures.
+
+"Everybody, please smile! This is going to be one of our best excursions."
+
+Rhoda leaned towards the window.
+
+"I heard there is a waterfall near the guesthouse. I hope we get to visit it."
+
+"First, let's get there safely," Aunt Mary replied.
+
+Missy sat comfortably, listening to the conversation.
+
+For the first hour, everything was perfect.
+
+Then Selena looked at a photograph on her phone.
+
+"Wait a minute…"
+
+"What?" Priscilla asked.
+
+"Who is that standing behind us?"
+
+She showed the photograph to Lucy.
+
+Lucy looked at it for a moment.
+
+"Where did you take this?"
+
+"Just now. At the fuel station."
+
+Lucy zoomed in.
+
+There was a woman standing behind the group. She wore a pale blue dress and appeared to be looking directly at the camera.
+
+But Selena was certain nobody had been standing there.
+
+Before Lucy could say anything, the bus moved again.
+
+And the woman disappeared from the photograph.`,
+    choices: [
+      { id: 'a1', lbl: "A. Ask Selena to show the original photograph and examine it carefully.", v: { evidence: 1, selena_confidence: 1 } },
+      { id: 'b1', lbl: "B. Tell Selena not to worry; it may just be a stranger who happened to be there.", v: { evidence: -1, clue: -1 } },
+      { id: 'c1', lbl: "C. Ask Lucy what she noticed, since she seems to have spotted something.", v: { lucy_confidence: 1, evidence: 1, clues_found: 1 } }
+    ]
+  };
+
+  N.c1s2 = {
+    title: "Chapter 1: The Wrong Turn",
+    ch: "Chapter 1",
+    text: `An hour later, the driver slowed down.
+
+"Madam, there seems to be a problem with the road ahead."
+
+Aunt Mary looked up.
+
+"What kind of problem?"
+
+"Some construction work. We may have to take another route."
+
+Sis. Lizzy frowned.
+
+"But the organisers gave us directions. Did they mention this?"
+
+The driver shook his head.
+
+He turned onto a narrower road.
+
+The scenery began to change. The houses became fewer. The road was rough, and the mobile network gradually disappeared.
+
+Rhoda looked delighted.
+
+"This is actually beautiful!"
+
+Vera looked at her.
+
+"You find everything beautiful until something happens."
+
+A few minutes later, the bus stopped.
+
+Ahead of them was an old wooden sign.
+
+GREEN VALLEY RETREAT — 2 KM
+
+But someone had scratched out the word RETREAT and written something underneath.
+
+Lucy leaned forward.
+
+"What does that say?"
+
+Missy looked through the window.
+
+The writing was faded, but she could make out two words:
+
+DON'T RETURN.
+
+Nobody spoke for a moment.
+
+Then the driver laughed nervously.
+
+"Children, these village people and their strange signs."
+
+He started the engine.
+
+But before the bus could move, an elderly woman appeared beside the road.
+
+She raised her hand.
+
+"Please! Are you going to Green Valley?"
+
+Aunt Mary opened the window slightly.
+
+"Yes. Do you know the place?"
+
+The woman looked at the ladies.
+
+Then she said something that made Aunt Mary go quiet.
+
+"Are you the young women from the church?"
+
+Aunt Mary nodded.
+
+The woman lowered her voice.
+
+"Then you should not be going there."`,
+    choices: [
+      { id: 'a2', lbl: "A. Ask the elderly woman why they should not go there.", v: { esther_clues: 1, unity: 1, clues_found: 1 } },
+      { id: 'b2', lbl: "B. Tell the driver to continue. They should not let an unfamiliar warning ruin the excursion.", v: { danger: 1, trust: -1, unity: -1 } },
+      { id: 'c2', lbl: "C. Suggest that Aunt Mary contact the retreat organisers before proceeding.", v: { evidence: 1, unity: 1, danger: -1 } }
+    ]
+  };
+
+  N.c1s3 = {
+    title: "Chapter 1: Green Valley",
+    ch: "Chapter 1",
+    text: `By late afternoon, the bus finally reached the guesthouse.
+
+It was a large, old building surrounded by trees. The garden was surprisingly beautiful, but the building itself looked as though it had not been properly maintained in years.
+
+A man came out to welcome them.
+
+"Good afternoon. You must be the ladies from the church."
+
+Aunt Mary smiled politely.
+
+"Yes. We have a reservation."
+
+"Of course. We have been expecting you."
+
+He introduced himself as Mr. Daniel, the caretaker.
+
+He showed them their rooms and explained the rules.
+
+"Please do not enter the old building behind the guesthouse. It is under renovation."
+
+Rhoda immediately asked:
+
+"What's inside?"
+
+"Nothing of interest."
+
+"Then why can't we enter?"
+
+Mr. Daniel smiled.
+
+"Because it is unsafe."
+
+Sis. Lizzy thanked him and gathered the ladies.
+
+As they unpacked, Sophia noticed something strange.
+
+There were eight beds in their room.
+
+But there were nine ladies.
+
+She counted again.
+
+"One, two, three…"
+
+She stopped.
+
+"Missy?"
+
+"Yes?"
+
+"Did we book this room for eight people?"
+
+Missy looked around.
+
+Sophia pointed at the wardrobe.
+
+A small piece of paper had been pushed underneath it.
+
+On it were the names of all nine ladies.
+
+And beneath the names was a handwritten sentence:
+
+WE HAVE BEEN WAITING FOR YOU.`,
+    choices: [
+      { id: 'investigate', lbl: "Notice the note and start the investigation.", v: { esther_clues: 1, clues_found: 1 } }
+    ]
+  };
+
+  // Chapter 2
+  N.c2s1 = {
+    title: "Chapter 2: The First Night",
+    ch: "Chapter 2",
+    text: `The ladies gathered in the sitting room after dinner.
+
+Aunt Mary was visibly uncomfortable.
+
+"I don't want anyone wandering around tonight. We are guests here, and we must respect the rules."
+
+Vera folded her arms.
+
+"Respect which rules? The ones nobody has properly explained?"
+
+"Vera," Sis. Lizzy warned.
+
+Priscilla tried to lighten the mood.
+
+"Let's just have our evening worship and get some rest. Tomorrow will be better."
+
+They sang a hymn and prayed together.
+
+For a while, everything seemed normal.
+
+Then, at exactly 2:17 a.m., Missy woke up.
+
+Three knocks.
+
+Knock.
+
+Knock.
+
+Knock.
+
+She sat up.
+
+The sound had come from the door.
+
+She looked at the other beds. Sophia was awake too.
+
+"Did you hear that?" Sophia whispered.
+
+Missy nodded.
+
+Then a voice came from the other side.
+
+"Selena?"
+
+It was a woman's voice.
+
+Soft. Familiar.
+
+"Selena, please open the door."
+
+Selena sat up immediately.
+
+"That's my mother's voice."
+
+But Selena's mother was not at Green Valley.
+
+And the voice spoke again.
+
+"Selena, I know you're awake."`,
+    choices: [
+      { id: 'a21', lbl: "A. Wake Aunt Mary and Sis. Lizzy immediately.", v: { trust: 1, unity: 1 } },
+      { id: 'b21', lbl: "B. Quietly look through the window to see who is outside.", v: { danger: 1, clues_found: 1, lucy_confidence: 1 } },
+      { id: 'c21', lbl: "C. Tell everyone to remain quiet. Do not respond to the voice.", v: { trust: -1, unity: -1, danger: 1 } }
+    ]
+  };
+
+  N.c2s2 = {
+    title: "Chapter 2: The Missing Photograph",
+    ch: "Chapter 2",
+    text: `The next morning, Selena searched her phone.
+
+"Missy, something is wrong."
+
+"What now?"
+
+"The pictures I took yesterday."
+
+She opened her gallery.
+
+Most of the photographs were still there. But the ones taken at the fuel station and outside the guesthouse had disappeared.
+
+"I didn't delete them."
+
+Lucy took the phone.
+
+"Check your recently deleted folder."
+
+It was empty.
+
+Then Sophia spoke.
+
+"Maybe we should leave."
+
+Aunt Mary looked at her.
+
+"We are not making decisions based on fear. We will investigate what is happening, but nobody goes anywhere alone."
+
+Sis. Lizzy agreed.
+
+"I have also noticed something. Mr. Daniel told us that this building was under renovation. But I found fresh footprints outside the locked entrance. Someone has been going in and out."`,
+    choices: [
+      { id: 'probe', lbl: "Investigate the footprints and the missing photographs together.", v: { evidence: 1, lucy_confidence: 1, clues_found: 1 } }
+    ]
+  };
+
+  N.c2s3 = {
+    title: "Chapter 2: The Caretaker's Office",
+    ch: "Chapter 2",
+    text: `That afternoon, the group discovered that Mr. Daniel had gone into town.
+
+His office door was slightly open.
+
+Rhoda noticed it first.
+
+"Look. The door is not locked."
+
+Sis. Lizzy told everyone to stay outside.
+
+But through the gap, Missy could see a desk covered in papers.
+
+One sheet had a heading:
+
+GREEN VALLEY RETREAT — GUEST REGISTER
+
+The pages were old.
+
+Some names were crossed out.
+
+Some were circled.
+
+And on the final page were the names of the nine ladies.
+
+Below them was a date.
+
+JUNE — THIS YEAR.
+
+The reservation had been made months before Aunt Mary had even organised the excursion.`,
+    choices: [
+      { id: 'a23', lbl: "A. Call Aunt Mary and wait for the leaders before entering.", v: { unity: 1, trust: 1 } },
+      { id: 'b23', lbl: "B. Ask Selena to photograph the register from the doorway.", v: { evidence: 1, selena_confidence: 1 } },
+      { id: 'c23', lbl: "C. Enter quickly and search for the booking documents.", v: { evidence: 2, danger: 1, clues_found: 1 } }
+    ]
+  };
+
+  // Chapter 3
+  N.c3s1 = {
+    title: "Chapter 3: The Old Excursion",
+    ch: "Chapter 3",
+    text: `The photograph was taken down from the wall.
+
+Aunt Mary studied it carefully.
+
+"Could this be another church group?"
+
+Sis. Priscilla shook her head.
+
+"I don't think so. Look at their shirts."
+
+The women in the photograph were wearing T-shirts with the same words printed across the front:
+
+A VESSEL OF HONOUR.
+
+Selena moved closer.
+
+"Wait. I recognise that design."
+
+She pointed to the woman standing at the far right.
+
+"Her face looks familiar."
+
+Lucy examined the photograph.
+
+"Her name is Esther. I saw it written in the register."
+
+Sis. Lizzy opened the old guestbook again.
+
+The previous group had arrived for an excursion, just like them. Their names were recorded, but the departure column was incomplete.
+
+There was no explanation.
+
+Only a short note:
+
+GROUP ACCOUNT: CLOSED.
+
+"Closed?" Vera repeated. "What does that even mean?"
+
+Aunt Mary closed the book.
+
+"We are leaving tomorrow morning. I will speak to the organisers and find out what happened."
+
+But Missy noticed something.
+
+The photograph showed eight women.
+
+The register listed nine.
+
+And one name had been scratched out so violently that the paper was almost torn.`,
+    choices: [
+      { id: 'a31', lbl: "A. Selena and Lucy — examine the photographs and registers.", v: { selena_confidence: 1, lucy_confidence: 1, evidence: 1, clues_found: 1 } },
+      { id: 'b31', lbl: "B. Rhoda and Vera — search the building and look for hidden rooms.", v: { danger: 1, rhoda_caution: -1, clues_found: 1 } },
+      { id: 'c31', lbl: "C. Aunt Mary and Sis. Lizzy — investigate officially and keep everyone together.", v: { unity: 1, trust: 1, clues_found: 1 } }
+    ]
+  };
+
+  N.c3s2 = {
+    title: "Chapter 3: Esther's Room",
+    ch: "Chapter 3",
+    text: `That evening, the ladies discovered that Room 9 had been locked.
+
+It was at the far end of the upstairs corridor.
+
+The door was old and covered in scratches.
+
+Rhoda examined the handle.
+
+"Someone has tried to force this open."
+
+"Or someone has tried to keep something inside," Lucy replied.
+
+Aunt Mary told them to leave it alone.
+
+But as they turned away, Sophia heard a faint sound.
+
+A woman's voice.
+
+"Please…"
+
+She stopped.
+
+"Did anyone hear that?"
+
+Nobody answered.
+
+Then it came again.
+
+"Please don't leave me here."
+
+Sophia began to cry.
+
+Sis. Priscilla held her hand.
+
+"It's alright. We are together."
+
+The voice came from behind Room 9.
+
+And then, suddenly, a phone began ringing inside the locked room.
+
+It was Selena's ringtone.
+
+Everyone turned towards her.
+
+Her phone was in her hand.
+
+The ringing continued.`,
+    choices: [
+      { id: 'room9', lbl: "Investigate the locked room and the ringing phone.", v: { danger: 1, esther_clues: 1, clues_found: 1 } }
+    ]
+  };
+
+  N.c3s3 = {
+    title: "Chapter 3: The Secret Behind the Building",
+    ch: "Chapter 3",
+    text: `The following morning, the group discovered that Mr. Daniel had disappeared.
+
+His office was unlocked.
+
+His keys were gone.
+
+Aunt Mary was furious.
+
+"We are leaving. I don't care what anyone says."
+
+But the bus driver had not returned.
+
+The driver had gone to town the previous afternoon and had not come back.
+
+Sis. Lizzy checked the vehicle.
+
+One of the tyres had been deliberately damaged.
+
+They were not simply stranded.
+
+Someone had made sure they could not leave easily.
+
+Lucy found a folded paper beneath the front passenger seat.
+
+It was an old letter addressed to Esther.
+
+The letter explained that the previous excursion group had discovered a hidden room beneath the old building. They had found photographs, records and personal belongings belonging to young women who had visited Green Valley over several years.
+
+The caretaker had been collecting information about visitors.
+
+The letters suggested that he had used the guesthouse's hidden corridors to frighten guests, impersonate familiar voices and make them believe the building was haunted.
+
+But the letter ended with a warning:
+
+ESTHER FOUND SOMETHING HE DID NOT WANT ANYONE TO SEE. IF YOU FIND HER NOTEBOOK, DO NOT LET HIM TAKE IT.
+
+"Who is he?" Sophia asked.
+
+Nobody answered.
+
+Then the old building's door opened.
+
+And someone inside began calling Missy's name.`,
+    choices: [
+      { id: 'follow', lbl: "Follow the voice into the old building.", v: { danger: 1, clues_found: 1 } }
+    ]
+  };
+
+  // Chapter 4
+  N.c4s1 = {
+    title: "Chapter 4: The Building Opens",
+    ch: "Chapter 4",
+    text: `The door to the old building had been locked the previous day.
+
+Now it stood open.
+
+Aunt Mary gathered everyone.
+
+"Nobody goes in there alone. Nobody."
+
+Rhoda looked at the doorway.
+
+"But the letter said Esther left a notebook."
+
+"Rhoda, this is not an adventure," Sis. Lizzy replied.
+
+Missy noticed something on the ground.
+
+A small piece of paper.
+
+It had been placed just outside the entrance.
+
+On it were the words:
+
+SHE IS NOT IN ROOM 9.
+
+Then another line:
+
+SHE IS UNDERNEATH YOU.
+
+The ladies looked down.
+
+A faint tapping sound came from beneath the floorboards.
+
+Three taps.
+
+A pause.
+
+Three more.
+
+Selena whispered, "Someone is down there."`,
+    choices: [
+      { id: 'a41', lbl: "A. Search for the entrance to the underground room, but go as a group.", v: { unity: 1, evidence: 1, clues_found: 1 } },
+      { id: 'b41', lbl: "B. Stay together and find a way to contact outside help first.", v: { danger: -1, trust: 1, evidence: 1 } },
+      { id: 'c41', lbl: "C. Call out whoever is hiding inside and demand that they come out.", v: { danger: 1, unity: -1 } }
+    ]
+  };
+
+  N.c4s2 = {
+    title: "Chapter 4: The Underground Room",
+    ch: "Chapter 4",
+    text: `The room was cold.
+
+It smelled of damp wood and old paper.
+
+There were boxes stacked against the walls. Some contained old guest registers. Others contained photographs, identity cards and personal belongings.
+
+Selena lifted a photograph.
+
+It showed the previous group of young women.
+
+But someone had drawn a line through Esther's face.
+
+Lucy found a notebook.
+
+The first page read:
+
+MY NAME IS ESTHER. IF YOU ARE READING THIS, PLEASE KNOW THAT I DID NOT DISAPPEAR. I FOUND OUT WHAT THEY WERE DOING.
+
+The notebook explained that the retreat's former caretaker had been secretly recording the movements and conversations of guests. He had used hidden speakers, recorded voices and false messages to frighten visitors and make them leave without reporting what they had discovered.
+
+Esther had found the records and tried to expose him.
+
+She had been locked in the underground room.
+
+But the notebook had another revelation.
+
+THE PERSON HELPING HIM IS NOT A STRANGER. SOMEONE FROM THE EXCURSION GROUP HAS BEEN SENDING HIM INFORMATION.
+
+The ladies went silent.
+
+Vera looked around.
+
+"Are you saying one of us…?"
+
+Aunt Mary took the notebook.
+
+"Let's not accuse anybody without evidence."
+
+Then the door above them slammed.
+
+The lights went out.
+
+And someone began walking down the stairs.
+
+Slowly.
+
+One step at a time.`,
+    choices: [
+      { id: 'footsteps', lbl: "What should Missy do about the approaching footsteps?", v: { danger: -1, evidence: 1, trust: 1 } }
+    ]
+  };
+
+  N.c4s3 = {
+    title: "Chapter 4: The Truth About Esther",
+    ch: "Chapter 4",
+    text: `A figure appeared at the foot of the staircase.
+
+It was Mr. Daniel.
+
+He was holding a torch.
+
+"You should not have come down here."
+
+Aunt Mary stepped forward.
+
+"What happened to Esther?"
+
+He looked at the notebook in her hand.
+
+"Give it to me."
+
+"Where is she?"
+
+He hesitated.
+
+Then he laughed.
+
+"You people think this place is haunted. You think there is something supernatural happening here. There isn't."
+
+He explained that he had been using hidden speakers, old recordings and secret passages to frighten guests. He had been gathering information about visitors and using it to manipulate them. He wanted to keep the operation hidden, and the old records were evidence.
+
+But there was still a question.
+
+Who had been sending him information about this particular group?
+
+Mr. Daniel looked towards the stairs.
+
+Then a second voice spoke.
+
+"Daniel. That's enough."
+
+Everyone turned.
+
+It was the driver.
+
+He had returned.
+
+He was the one who had brought them through the wrong road. He had been working with Mr. Daniel.
+
+But he was not the only person involved.
+
+The driver admitted that someone had supplied the group's names and excursion details. He claimed he had never met that person face-to-face.
+
+The group had been selected before the journey even began.
+
+Then Lucy noticed something.
+
+The old register was open on the table.
+
+Beside the names was a handwritten symbol.
+
+She recognised it from the booking receipt.
+
+It was the logo of the organisation that had paid for the excursion.
+
+And the organisation's name was printed on the back of the letter Aunt Mary had received before the trip.
+
+The mystery was no longer just about a guesthouse.
+
+It was about a carefully arranged deception.`,
+    choices: [
+      { id: 'truth', lbl: "Confront Mr. Daniel and the driver with what you know.", v: { trust: 1, unity: 1, clues_found: 1 } }
+    ]
+  };
+
+  // Chapter 5
+  N.c5s1 = {
+    title: "Chapter 5: The Final Decision",
+    ch: "Chapter 5",
+    text: `Mr. Daniel and the driver were now standing between the ladies and the staircase.
+
+Aunt Mary was frightened, but she refused to abandon anyone.
+
+Sis. Lizzy quietly told Missy:
+
+"We need to get everyone out. We need evidence, and we need help. We cannot afford to make a careless move."
+
+Selena was holding her phone.
+
+Lucy had remembered the organisation's name.
+
+Rhoda knew where the hidden passage led.
+
+Priscilla was comforting Sophia.
+
+Vera, despite her injured ankle, was ready to help.
+
+For the first time, the group understood that their survival depended on working together.
+
+But they had to choose how.`,
+    choices: [
+      { id: 'a5', lbl: "A. Preserve the evidence, send it to someone outside and wait for help.", v: { evidence: 2, trust: 1, unity: 1 } },
+      { id: 'b5', lbl: "B. Use the hidden passage to escape immediately, even if they cannot take everything.", v: { danger: -1, evidence: -1, trust: -1 } },
+      { id: 'c5', lbl: "C. Divide responsibilities: some protect the evidence while others find a safe exit.", v: { evidence: 1, trust: 1, unity: 1 } }
+    ]
+  };
+
+  N.c5s2 = {
+    title: "Chapter 5: The Last Confrontation",
+    ch: "Chapter 5",
+    text: `The plan was put into motion.
+
+Aunt Mary stood in front of the ladies.
+
+"Whatever happens, nobody leaves anybody behind."
+
+Mr. Daniel tried to take the notebook.
+
+But Selena raised her phone.
+
+"I have pictures of the register. I have the photographs. And I have sent copies outside."
+
+Lucy stepped forward.
+
+"And I know the name of the organisation that arranged this excursion."
+
+For the first time, Mr. Daniel looked genuinely frightened.
+
+The driver tried to move towards the exit.
+
+Vera blocked his path.
+
+"Not so fast. You brought us here. You are going to explain yourself."
+
+Sis. Lizzy pulled Vera back.
+
+"Don't take unnecessary risks."
+
+Then the sound of a vehicle came from outside.
+
+Aunt Mary looked towards the window.
+
+A vehicle had arrived.
+
+The ladies were not alone anymore.
+
+The rest of the events depend on what Missy has done throughout the story.`,
+    choices: [
+      { id: 'finish', lbl: "Wrap up the story based on the choices made." }
+    ]
+  };
+}
+
+buildStory();
+
+// ===== START =====
+N.current = N['Chapter 1: The Excursion'];
+renderScene(N.current);
+
+// ===== ENDING EVALUATION =====
+function evaluateEnding() {
+  const s = document.getElementById('s');
+  s.innerHTML = '';
+  let end = null, epi = '', message = '';
+
+  const best = V.evidence >= 2 && V.trust >= 2 && V.unity >= 2 && V.esther_clues >= 2;
+  const escape_ = V.evidence < 2 && V.chapter >= 5;
+  const difficult = V.trust < 2 && V.evidence < 2 && V.unity < 2;
+  const secret = V.esther_clues >= 3 && V.clues_found >= 4;
+
+  if (best) {
+    end = "THE VESSEL THAT WOULD NOT BREAK";
+    epi = "The evidence reaches the authorities. The driver and Mr. Daniel are taken in for questioning, and the ladies are safely escorted away.";
+    message = "The group preserved important evidence, trusted one another, and made careful decisions.";
+  } else if (escape_) {
+    end = "THE ONES WHO MADE IT OUT";
+    epi = "The ladies escape through the hidden passage and reach the main road. They are safe, but much of the evidence remains behind.";
+    message = "When Missy prioritised escape over collecting evidence, the mystery remains partly unsolved.";
+  } else if (difficult) {
+    end = "THE PRICE OF DISTRUST";
+    epi = "The group gets out, but poor communication and suspicion have caused unnecessary trouble.";
+    message = "When Missy repeatedly dismissed warnings and made decisions without considering the others, the group paid the price.";
+  } else if (secret) {
+    end = "THE NINTH NAME";
+    epi = "The organisation behind the excursion had a much longer history. Green Valley was only one of several locations used to collect information about visitors.";
+    message = "By discovering every clue, Missy unlocked the hidden ending.";
+  } else {
+    end = "TRACEBACK";
+    epi = "The story ends before all mysteries are resolved.";
+    message = "A vessel of horror, and the journey continues...";
+  }
+
+  const h = document.createElement('h2');
+  h.textContent = end;
+  s.appendChild(h);
+  const em = document.createElement('em');
+  em.textContent = epi;
+  s.appendChild(em);
+  const note = document.createElement('p');
+  note.style.textAlign = 'center';
+  note.style.color = '#7d776d';
+  note.style.fontSize = '.85em';
+  note.textContent = message;
+  s.appendChild(note);
+  const btn2 = document.createElement('button');
+  btn2.textContent = "Start a New Game";
+  btn2.style.marginTop = '30px';
+  btn2.addEventListener('click', () => { location.reload(); });
+  s.appendChild(btn2);
+}
+
+// ===== MARIONETTE CONTROLS =====
+const mu = document.getElementById('mu');
+const tw = document.getElementById('tw');
+mu.addEventListener('click', () => {
+  V.fast = !V.fast;
+  try { localStorage.setItem('gap_fast', V.fast ? '1' : '0'); } catch(e) {}
+  alert(V.fast ? 'Fast mode: ON' : 'Fast mode: OFF');
+});
+
+tw.addEventListener('click', () => {
+  document.body.className = document.body.className === 'dark' ? '' : 'dark';
+});
+</script>
+</body>
+</html>
